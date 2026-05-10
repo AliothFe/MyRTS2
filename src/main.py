@@ -79,7 +79,7 @@ def main():
     selecting = False
     select_start = (0, 0)
     client_frame = 0
-    queue_display = []          # 提前初始化，避免未定义
+    queue_display = []
 
     hex_map = create_hex_map()
     top_base, bottom_base = get_base_positions()
@@ -233,10 +233,18 @@ def main():
                 color = COLOR_BLUE if oid == my_id else COLOR_RED
                 pygame.draw.polygon(screen, color, get_hex_corners(cx, cy))
 
-            # 绘制所有单位（暂时关闭迷雾）
+            # ========== 战争迷雾：只绘制可见单位 ==========
+            my_units = [u for u in units_info if u['owner'] == my_id]
+            sight_range = 150
+            visible_ids = set()
+            for mu in my_units:
+                for u in units_info:
+                    if math.hypot(mu['x'] - u['x'], mu['y'] - u['y']) <= sight_range:
+                        visible_ids.add(u['id'])
             for u in units_info:
-                u['selected'] = (u['id'] in selected_ids)
-                _draw_unit_from_info(u, screen, my_id)
+                if u['id'] in visible_ids or u['owner'] == my_id:
+                    u['selected'] = (u['id'] in selected_ids)
+                    _draw_unit_from_info(u, screen, my_id)
 
             # UI（包含进度条）
             ui.draw(resources, my_id, control_groups,

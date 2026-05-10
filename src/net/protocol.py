@@ -88,13 +88,13 @@ def pack_snapshot(units, resources, queue_info):
     unit_data = b''
     for u in units:
         unit_data += struct.pack('!BBHhhHB',
-                                 u.owner,
-                                 u.unit_id,
-                                 {"infantry":0, "tank":1, "at_infantry":2}[u.type],
-                                 int(u.x),
-                                 int(u.y),
-                                 u.hp,
-                                 u.siege_mode)
+                             u.owner,
+                             u.unit_id,
+                             {"infantry":0, "tank":1, "at_infantry":2}[u.type],
+                             int(u.x),
+                             int(u.y),
+                             int(u.hp),                              # 强制转整
+                             1 if u.siege_mode else 0)               # 明确转整
     # 队列数据
     queue_data = b''
     for job in queue_info:
