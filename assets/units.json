@@ -1,0 +1,43 @@
+{
+  "infantry": {
+    "name": "步兵",
+    "hp": 80,
+    "speed": 2.5,
+    "range": 80,
+    "damage": 8,
+    "attack_cooldown": 60,
+    "cost": 60,
+    "build_time_sec": 8
+  },
+  "tank": {
+    "name": "坦克",
+    "hp": 200,
+    "speed": 1.5,
+    "range": 120,
+    "damage": 25,
+    "attack_cooldown": 90,
+    "cost": 180,
+    "build_time_sec": 16,
+    "siege_range": 180,
+    "siege_damage": 30,
+    "siege_dmg_reduction": 0.3
+  },
+  "at_infantry": {
+    "name": "反坦克步兵",
+    "hp": 90,
+    "speed": 2.0,
+    "range": 90,
+    "damage_vs_tank": 35,
+    "damage_vs_infantry": 5,
+    "attack_cooldown": 60,
+    "cost": 80,
+    "build_time_sec": 8
+  },
+  "resource": {
+    "initial": 150,
+    "interval_sec": 3.0,
+    "per_tick": 30
+  },
+  "unit_radius": 10,
+  "bullet_speed": 8
+}

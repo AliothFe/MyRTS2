@@ -8,6 +8,7 @@ from src.entities.unit import Unit
 from src.entities.bullet import Bullet
 from src.systems.resource_system import ResourceSystem
 from src.systems.production import ProductionSystem
+from src.core.config import get_config
 
 SERVER_PORT = 9999
 LOGIC_TICK = 1 / FPS
@@ -20,11 +21,14 @@ class GameServer:
         self.sock.setblocking(False)
         self.clients = {}
         self.ready = {1: False, 2: False}
+        # 资源系统内部会从配置读取初始资源等
         self.resource_sys = ResourceSystem()
         self.prod_sys = ProductionSystem()
         self.units = []
         self.bullets = []
         self.next_unit_id = 0
+        # 加载全局配置
+        self.config = get_config()
 
     def broadcast(self, data):
         for addr in self.clients:
@@ -62,14 +66,15 @@ class GameServer:
         time.sleep(3)
         self.broadcast(pack_start())
         offset_x, offset_y = SCREEN_WIDTH//2, SCREEN_HEIGHT//2
-        # 初始单位（手动设置不重叠的位置）
-        u1 = Unit(offset_x - 30, offset_y - 200, 1, "infantry", self.next_unit_id)
+        cfg = self.config
+        # 初始单位（用配置中的数据）
+        u1 = Unit(offset_x - 30, offset_y - 200, 1, "infantry", self.next_unit_id, cfg["infantry"])
         self.next_unit_id += 1
-        u2 = Unit(offset_x + 30, offset_y - 200, 1, "infantry", self.next_unit_id)
+        u2 = Unit(offset_x + 30, offset_y - 200, 1, "infantry", self.next_unit_id, cfg["infantry"])
         self.next_unit_id += 1
-        u3 = Unit(offset_x - 30, offset_y + 200, 2, "infantry", self.next_unit_id)
+        u3 = Unit(offset_x - 30, offset_y + 200, 2, "infantry", self.next_unit_id, cfg["infantry"])
         self.next_unit_id += 1
-        u4 = Unit(offset_x + 30, offset_y + 200, 2, "infantry", self.next_unit_id)
+        u4 = Unit(offset_x + 30, offset_y + 200, 2, "infantry", self.next_unit_id, cfg["infantry"])
         self.next_unit_id += 1
         self.units = [u1, u2, u3, u4]
 
@@ -78,7 +83,6 @@ class GameServer:
 
         while True:
             now = time.time()
-            # 接收指令
             try:
                 while True:
                     data, addr = self.sock.recvfrom(1024)
@@ -90,12 +94,10 @@ class GameServer:
                 print("客户端断开")
                 break
 
-            # 60FPS 逻辑更新
             if now - last_logic >= LOGIC_TICK:
                 self.update_world()
                 last_logic = now
 
-            # 快照
             if now - last_snapshot >= SNAPSHOT_INTERVAL:
                 queue_info = self.prod_sys.get_all_queue_info()
                 snapshot = pack_snapshot(self.units, self.resource_sys.players_resources, queue_info)
@@ -115,10 +117,11 @@ class GameServer:
         elif cmd == CMD_BUILD:
             pid, utype_code = unpack_build(data)
             utype = {0:"infantry", 1:"tank", 2:"at_infantry"}[utype_code]
-            cost = {"infantry":INFANTRY_COST, "tank":TANK_COST, "at_infantry":AT_INFANTRY_COST}[utype]
+            unit_cfg = self.config[utype]
+            cost = unit_cfg['cost']
             if self.resource_sys.can_afford(pid, cost):
                 self.resource_sys.spend(pid, cost)
-                build_sec = {"infantry":8.0, "tank":16.0, "at_infantry":8.0}[utype]
+                build_sec = unit_cfg['build_time_sec']
                 self.prod_sys.add_to_queue(pid, utype, build_sec)
         elif cmd == CMD_SWITCH_SIEGE:
             pid, uid, mode = unpack_switch_siege(data)
@@ -137,7 +140,7 @@ class GameServer:
         self.next_unit_id = self.prod_sys.update(
             self.units, self.next_unit_id,
             SCREEN_WIDTH//2, SCREEN_HEIGHT//2,
-            self.units   # 传入全部单位用于重叠检测
+            self.units
         )
         for u in self.units:
             u.update(self.units)
